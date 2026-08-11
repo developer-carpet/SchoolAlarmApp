@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>교실 타이머 설정 및 알람</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #17181d;
+      --panel: #23252c;
+      --field: #30333c;
+      --border: rgba(255,255,255,.13);
+      --fg: #f7f8fa;
+      --muted: #a9adb8;
+      --accent: #3ecf8e;
+      --accent-ink: #08321f;
+      --danger: #ff6b6b;
+      font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 300px; background: var(--bg); color: var(--fg); font-size: 13px; }
+    body[data-ui-theme="sunny"] { --bg:#f8edbd; --panel:#fff9df; --field:#fffef4; --border:rgba(70,95,120,.22); --fg:#29425f; --muted:#63788c; --accent:#f2a437; --accent-ink:#513116; color-scheme:light; }
+    body[data-ui-theme="forest"] { --bg:#164d3d; --panel:#1e624d; --field:#2a705a; --border:rgba(235,255,225,.22); --fg:#f8fff5; --muted:#c1d9ca; --accent:#d8e768; --accent-ink:#354009; }
+    body[data-ui-theme="space"] { --bg:#161641; --panel:#25235e; --field:#302e70; --border:rgba(160,190,255,.25); --fg:#fff; --muted:#c6c7ed; --accent:#7ee8fa; --accent-ink:#153b49; }
+    button, input, select, textarea { font: inherit; }
+    .top { position: sticky; top: 0; z-index: 5; padding: 14px 16px 10px; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); }
+    .top h1 { margin: 0 0 10px; font-size: 18px; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .tab { border: 1px solid var(--border); border-radius: 9px; padding: 8px; background: var(--field); color: var(--fg); cursor: pointer; }
+    .tab.active { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
+    main { padding: 14px 16px 24px; }
+    .page { display: none; flex-direction: column; gap: 12px; }
+    .page.active { display: flex; }
+    section { padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+    section h2 { margin: 0 0 11px; font-size: 13px; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+    label.setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    label.vertical { align-items: stretch; flex-direction: column; gap: 5px; }
+    input[type="range"] { min-width: 105px; flex: 1; accent-color: var(--accent); }
+    input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+    input[type="number"] { width: 72px; }
+    input[type="number"], input[type="time"], input[type="text"], select, textarea {
+      min-width: 0; padding: 7px 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--field); color: var(--fg);
+    }
+    select { flex: 1; }
+    textarea { width: 100%; resize: vertical; line-height: 1.45; }
+    .row { display: flex; align-items: center; gap: 7px; }
+    .row > * { flex: 1; }
+    button.action { border: 0; border-radius: 8px; padding: 8px 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; }
+    button.secondary { background: var(--field); color: var(--fg); border: 1px solid var(--border); }
+    button.danger { color: var(--danger); background: transparent; border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent); }
+    .hint { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .theme-picker { display: grid; gap: 7px; }
+    .theme-card { display: grid; grid-template-columns: 44px 1fr 18px; align-items: center; gap: 9px; width: 100%; padding: 8px; border: 2px solid transparent; border-radius: 10px; background: var(--field); color: var(--fg); text-align: left; cursor: pointer; }
+    .theme-card.selected { border-color: var(--accent); }
+    .theme-preview { height: 35px; border-radius: 8px; display: grid; place-items: center; font-size: 18px; }
+    .theme-card[data-theme="classic"] .theme-preview { background:linear-gradient(145deg,#32343d,#17181d); }
+    .theme-card[data-theme="sunny"] .theme-preview { background:linear-gradient(145deg,#bceeff,#fff0a1); }
+    .theme-card[data-theme="forest"] .theme-preview { background:linear-gradient(145deg,#69bd83,#17624f); }
+    .theme-card[data-theme="space"] .theme-preview { background:linear-gradient(145deg,#554cb0,#151849); }
+    .theme-copy { display:flex; flex-direction:column; gap:2px; }
+    .theme-copy small { color:var(--muted); font-size:10px; }
+    .theme-check { opacity: 0; color: var(--accent); }
+    .theme-card.selected .theme-check { opacity: 1; }
+    .day-picker { display:none; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .day-picker.show { display:grid; }
+    .day-btn { padding:7px 0; border:0; border-radius:7px; background:var(--field); color:var(--fg); cursor:pointer; }
+    .day-btn.selected { background:var(--accent); color:var(--accent-ink); font-weight:700; }
+    #alarmList { display:flex; flex-direction:column; gap:7px; }
+    .alarm-item { display:flex; align-items:center; gap:8px; padding:9px; border-radius:9px; background:var(--field); }
+    .alarm-item.off { opacity:.48; }
+    .a-time { font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+    .a-meta { flex:1; min-width:0; }
+    .a-msg { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+    .a-rep { color:var(--muted); font-size:10px; margin-top:2px; }
+    .icon-action { flex:0 0 auto; border:0; background:transparent; color:var(--fg); cursor:pointer; font-size:15px; padding:4px; }
+    .icon-action.delete { color:var(--danger); }
+    .alarm-empty { color:var(--muted); text-align:center; padding:12px; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:11px; }
+    .section-head h2 { margin:0; }
+  </style>
+</head>
+<body data-ui-theme="sunny">
+  <header class="top">
+    <h1>설정 및 알람</h1>
+    <nav class="tabs" aria-label="설정 화면 선택">
+      <button class="tab active" type="button" data-tab="settings">⚙ 설정</button>
+      <button class="tab" type="button" data-tab="alarm">⏰ 알람</button>
+    </nav>
+  </header>
+  <main>
+    <div class="page active" id="settingsPage">
+      <section><h2>화면 꾸미기</h2><div class="theme-picker" id="themePicker">
+        <button class="theme-card" type="button" data-theme="classic"><span class="theme-preview">🕐</span><span class="theme-copy"><strong>기본 위젯</strong><small>투명 시계</small></span><span class="theme-check">●</span></button>
+        <button class="theme-card" type="button" data-theme="sunny"><span class="theme-preview">☀️</span><span class="theme-copy"><strong>햇살 교실</strong><small>밝고 따뜻한 파스텔 색</small></span><span class="theme-check">●</span></button>
+        <button class="theme-card" type="button" data-theme="forest"><span class="theme-preview">🌳</span><span class="theme-copy"><strong>숲속 친구</strong><small>편안한 초록색과 노란색</small></span><span class="theme-check">●</span></button>
+        <button class="theme-card" type="button" data-theme="space"><span class="theme-preview">🚀</span><span class="theme-copy"><strong>우주 탐험</strong><small>별이 빛나는 남색과 보라색</small></span><span class="theme-check">●</span></button>
+      </div></section>
+      <section class="stack"><h2>창 설정</h2>
+        <label class="setting">항상 위<input type="checkbox" id="alwaysOnTopChk" /></label>
+        <label class="setting">컴퓨터 시작 시 자동 실행<input type="checkbox" id="startupChk" /></label>
+        <label class="setting">클릭 통과<input type="checkbox" id="clickThroughChk" /></label>
+        <label class="setting">투명도<input type="range" id="opacityRange" min="0.2" max="1" step="0.05" /></label>
+      </section>
+      <section class="stack"><h2>시계 화면</h2>
+        <label class="setting">글자 색상<select id="clockFgInput"><option value="white">흰색</option><option value="green">초록</option><option value="blue">파랑</option><option value="yellow">노랑</option><option value="pink">분홍</option><option value="red">빨강</option><option value="black">검정</option></select></label>
+        <label class="setting">배경 색상<select id="clockBgInput"><option value="none">없음(투명)</option><option value="green">초록</option><option value="blue">파랑</option><option value="orange">주황</option><option value="pink">분홍</option><option value="red">빨강</option><option value="dark">검정</option><option value="white">흰색</option></select></label>
+        <label class="setting">다음 알람 표시<input type="checkbox" id="showNextAlarmChk" /></label>
+      </section>
+      <section class="stack"><h2>알람 소리</h2>
+        <label class="setting">볼륨<input type="range" id="volumeRange" min="0" max="1" step="0.05" /></label>
+        <label class="setting">무음<input type="checkbox" id="muteChk" /></label>
+        <label class="setting">알림음(음성 안내 전 울림)<select id="chimeSoundInput"><option value="none">없음</option><option value="chime">부드러운 차임</option><option value="bell">학교 종</option><option value="xylophone">실로폰</option></select></label>
+        <div class="row"><button class="action secondary" id="previewChimeBtn" type="button">알림음 미리 듣기</button></div>
+        <label class="setting">메시지 음성 읽기<input type="checkbox" id="speakChk" /></label>
+        <label class="setting">타이머 종료 안내 횟수<input type="number" id="timerRepeatCountInput" min="1" max="20" /></label>
+        <label class="setting">인터넷 연결 시 고품질 음성<input type="checkbox" id="onlineVoiceChk" /></label>
+        <label class="setting">음성 종류<select id="onlineVoiceNameInput"><option value="ko-KR-SunHiNeural">선히 (여성·밝은)</option><option value="ko-KR-JiMinNeural">지민 (여성)</option><option value="ko-KR-InJoonNeural">인준 (남성)</option><option value="ko-KR-BongJinNeural">봉진 (남성)</option><option value="ko-KR-HyunsuMultilingualNeural">현수 (남성)</option></select></label>
+        <button class="action" id="previewVoiceBtn" type="button">미리 듣기</button><div class="hint">인터넷이 없으면 자동으로 오프라인 음성으로 대체됩니다.</div>
+      </section>
+      <section class="stack"><h2>알람 발동 화면</h2>
+        <label class="setting vertical">알람 기본 문구<input type="text" id="defaultMsgInput" maxlength="40" placeholder="알람" /></label>
+        <label class="setting vertical">타이머 종료 문구<input type="text" id="timerMsgInput" maxlength="40" placeholder="시간 종료!" /></label>
+        <label class="setting">화면 색상<select id="overlayColorInput"><option value="green">초록</option><option value="blue">파랑</option><option value="orange">주황</option><option value="pink">분홍</option><option value="red">빨강(긴급)</option><option value="dark">검정</option></select></label>
+        <label class="setting">글자 크기<input type="range" id="overlayScaleInput" min="0.6" max="1.6" step="0.1" /></label>
+        <label class="setting">알람 창 투명도<input type="range" id="alarmOpacityInput" min="0.3" max="1" step="0.05" /></label>
+        <label class="setting">알람 발동 시 전체화면<input type="checkbox" id="alarmFullscreenChk" /></label>
+        <label class="setting">자동 끄기(초, 0=수동)<input type="number" id="autoDismissInput" min="0" max="600" step="5" /></label>
+      </section>
+      <div class="hint">단축키: Space 시작/정지 · R 리셋 · Ctrl+Shift+T 숨기기/보이기</div>
+    </div>
+
+    <div class="page" id="alarmPage">
+      <section class="stack"><h2>새 알람 추가</h2>
+        <div class="row"><input type="time" id="alarmTimeInput" /><select id="alarmRepeatInput"><option value="once">한 번</option><option value="daily">매일</option><option value="weekdays">평일(월~금)</option><option value="custom">요일 선택</option></select></div>
+        <div class="day-picker" id="alarmDaysPicker"><button type="button" class="day-btn" data-day="1">월</button><button type="button" class="day-btn" data-day="2">화</button><button type="button" class="day-btn" data-day="3">수</button><button type="button" class="day-btn" data-day="4">목</button><button type="button" class="day-btn" data-day="5">금</button><button type="button" class="day-btn" data-day="6">토</button><button type="button" class="day-btn" data-day="0">일</button></div>
+        <input type="text" id="alarmMsgInput" placeholder="알람 메시지 (예: 3교시 끝!)" maxlength="40" />
+        <label class="setting">안내 횟수<input type="number" id="alarmRepeatCountInput" min="1" max="20" value="3" /></label>
+        <div class="row"><button class="action" id="addAlarmBtn" type="button">알람 추가</button><button class="action secondary" id="cancelEditBtn" type="button" style="display:none; flex:0 0 auto;">취소</button></div>
+      </section>
+      <section class="stack"><h2>시간표 일괄 등록</h2><div class="hint">한 줄에 하나씩 <b>HH:MM 메시지</b> 형식으로 입력하세요.</div>
+        <textarea id="bulkInput" rows="7" placeholder="09:00 1교시 시작&#10;09:40 1교시 끝 · 쉬는 시간"></textarea>
+        <label class="setting">반복<select id="bulkRepeatInput"><option value="weekdays">평일(월~금)</option><option value="daily">매일</option><option value="once">한 번</option><option value="custom">요일 선택</option></select></label>
+        <div class="day-picker" id="bulkDaysPicker"><button type="button" class="day-btn" data-day="1">월</button><button type="button" class="day-btn" data-day="2">화</button><button type="button" class="day-btn" data-day="3">수</button><button type="button" class="day-btn" data-day="4">목</button><button type="button" class="day-btn" data-day="5">금</button><button type="button" class="day-btn" data-day="6">토</button><button type="button" class="day-btn" data-day="0">일</button></div>
+        <label class="setting">안내 횟수<input type="number" id="bulkRepeatCountInput" min="1" max="20" value="3" /></label>
+        <div class="row"><button class="action secondary" id="fillTemplateBtn" type="button">기본 시정표 채우기</button><button class="action" id="bulkAddBtn" type="button">일괄 추가</button></div>
+      </section>
+      <section><div class="section-head"><h2>알람 목록</h2><button class="action danger" id="clearAllBtn" type="button">전체 삭제</button></div><div id="alarmList"></div></section>
+    </div>
+  </main>
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "name": "classroom-timer",
+  "version": "1.0.0",
+  "description": "항상 위에 떠 있는 투명 교실용 타이머",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "msedge-tts": "^2.0.7"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.classroomtimer.app",
+    "productName": "ClassroomTimer",
+    "electronDist": "node_modules/electron/dist",
+    "electronVersion": "31.7.7",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "settings.html",
+      "settings.js",
+      "package.json"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

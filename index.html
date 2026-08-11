@@ -1,887 +1,532 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>교실 알람</title>
+<meta charset="UTF-8" />
+<title>Classroom Timer</title>
 <style>
   :root {
-    --color-charcoal-ink: #303030;
-    --color-paper-white: #ffffff;
-    --color-concrete-gray: #dbdbdb;
-    --color-fog-mist: #f2f2f2;
-    --color-ash-border: #ededed;
-    --color-smoke: #c2c2c2;
-    --color-graphite: #808080;
-    --color-pure-black: #000000;
-    --color-sand-wash: #e2ceb8;
-    --color-slate-veil: #6a728e;
-    --color-highlight-yellow: #f9f5a2;
-    --color-highlight-cyan: #c7f6ff;
-
-    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
-
-    --radius-cards: 20px;
-    --radius-badges: 20px;
-    --radius-images: 10px;
-    --radius-inputs: 25px;
-    --radius-buttons: 20px;
-
-    --shadow-sm: rgba(0, 0, 0, 0.16) 0px 3px 6px 0px;
-    --shadow-sm-2: rgba(0, 0, 0, 0.18) 0px 1px 4px 0px;
-
-    --overlay-clock-size: 64px;
+    --bg: rgba(20, 20, 24, 0.55);
+    --fg: #ffffff;
+    --accent: #3ecf8e;
+    --warn: #ffc94d;
+    --danger: #ff5c5c;
+    --control-bg: rgba(255, 255, 255, 0.12);
+    --clock-fg: #ffffff;
+    --clock-bg: transparent;
+    --theme-bg: linear-gradient(145deg, rgba(30, 42, 62, 0.94), rgba(18, 24, 38, 0.94));
+    --theme-card: rgba(255,255,255,0.12);
+    --theme-ink: #ffffff;
+    --theme-shadow: rgba(0,0,0,0.25);
+    --theme-panel: rgba(28,28,32,0.97);
+    --theme-panel-border: rgba(255,255,255,0.15);
+    --theme-field: rgba(255,255,255,0.1);
+    --theme-field-border: rgba(255,255,255,0.2);
+    --theme-option: #202024;
+    --theme-primary-ink: #08321f;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; user-select: none; }
   html, body {
     margin: 0; padding: 0;
-    background: var(--color-concrete-gray);
-    color: var(--color-charcoal-ink);
-    font-family: var(--font-mono);
-    font-feature-settings: "liga" 0, "calt" 0;
+    width: 100%; height: 100%;
+    background: transparent;
+    font-family: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+    overflow: hidden;
   }
-  .page {
-    max-width: 1440px;
-    margin: 0 auto;
-    padding: 24px;
-  }
-  .topbar {
-    text-align: center;
-    font-size: 14px;
-    color: var(--color-charcoal-ink);
-    margin-bottom: 24px;
-  }
-  .topbar .hl {
-    background: var(--color-highlight-yellow);
-    padding: 0 1px;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 24px;
-    align-items: start;
-  }
-  .card {
-    background: var(--color-paper-white);
-    border-radius: var(--radius-cards);
-    padding: 22px;
-    box-shadow: var(--shadow-sm);
-  }
-  .caption {
-    text-align: center;
-    font-size: 11px;
-    color: var(--color-charcoal-ink);
-    margin-bottom: 16px;
-  }
-
-  /* ---------- 시계 카드 ---------- */
-  .clock-card { text-align: center; }
-  .clock-time {
-    font-size: 43px;
-    font-weight: 400;
-    line-height: 1.4;
-    font-variant-numeric: tabular-nums;
-  }
-  .clock-date {
-    margin-top: 4px;
-    color: var(--color-graphite);
-    font-size: 14px;
-  }
-
-  /* ---------- 폼 ---------- */
-  label.field { display: block; margin-bottom: 14px; }
-  label.field span {
-    display: block;
-    font-size: 14px;
-    color: var(--color-graphite);
-    margin-bottom: 6px;
-  }
-  input[type="time"], input[type="text"], input[type="number"], select {
-    width: 100%;
-    padding: 10px 16px;
-    border-radius: var(--radius-inputs);
-    border: none;
-    background: var(--color-ash-border);
-    color: var(--color-charcoal-ink);
-    font-family: var(--font-mono);
-    font-size: 16px;
-  }
-  input::placeholder { color: var(--color-smoke); }
-  input[type="range"] {
-    width: 100%;
-    accent-color: var(--color-charcoal-ink);
-  }
-  .day-toggles { display: flex; gap: 8px; flex-wrap: wrap; }
-  .day-btn {
-    flex: 1;
-    min-width: 36px;
-    padding: 8px 0;
-    border-radius: var(--radius-buttons);
-    border: none;
-    background: var(--color-fog-mist);
-    color: var(--color-charcoal-ink);
-    font-family: var(--font-mono);
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .day-btn.active {
-    background: var(--color-charcoal-ink);
-    color: var(--color-paper-white);
-  }
-  .row { display: flex; gap: 10px; margin-top: 4px; }
-  .btn {
-    flex: 1;
-    padding: 8px 24px;
-    border-radius: var(--radius-buttons);
-    border: none;
-    background: var(--color-fog-mist);
-    color: var(--color-charcoal-ink);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    cursor: pointer;
-  }
-  .btn-solid {
-    background: var(--color-paper-white);
-    box-shadow: var(--shadow-sm-2);
-    text-transform: uppercase;
-  }
-  .hint {
-    margin-top: 10px;
-    font-size: 11px;
-    color: var(--color-graphite);
-  }
-
-  /* ---------- 목록 ---------- */
-  .alarm-item {
+  #app {
+    width: 100vw; height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 2px;
-    border-bottom: 1px solid var(--color-ash-border);
-    gap: 10px;
+    flex-direction: column;
+    background: var(--clock-bg);   /* 기본은 투명 - 설정에서 반투명 색상으로 바꿀 수 있음 */
+    border-radius: 14px;
+    color: var(--fg);
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
   }
-  .alarm-item:last-child { border-bottom: none; }
-  .alarm-item.off .alarm-time,
-  .alarm-item.off .alarm-msg { color: var(--color-smoke); }
-  .alarm-time {
-    font-size: 20px;
-    font-variant-numeric: tabular-nums;
-  }
-  .alarm-msg {
-    font-size: 13px;
-    color: var(--color-graphite);
-    margin-top: 2px;
-    word-break: break-all;
-  }
-  .alarm-repeat {
-    font-size: 12px;
-    color: var(--color-slate-veil);
-    margin-top: 2px;
-  }
-  .alarm-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute; cursor: pointer; inset: 0;
-    background: var(--color-smoke); border-radius: 999px; transition: .2s;
-  }
-  .slider::before {
-    content: ""; position: absolute; width: 18px; height: 18px;
-    left: 3px; bottom: 3px; background: var(--color-paper-white); border-radius: 50%; transition: .2s;
-  }
-  .switch input:checked + .slider { background: var(--color-charcoal-ink); }
-  .switch input:checked + .slider::before { transform: translateX(18px); }
-  .del-btn {
-    border: none; background: none; color: var(--color-graphite);
-    font-family: var(--font-mono);
-    font-size: 13px; cursor: pointer; padding: 4px 6px;
-  }
-  .empty {
-    text-align: center;
-    color: var(--color-graphite);
-    font-size: 14px;
-    padding: 30px 0;
+  #app::before {
+    content: '';
+    position: absolute; inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--theme-bg);
+    opacity: 0.28;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.16);
+    pointer-events: none;
   }
 
-  /* ---------- 알람 발동 오버레이 ----------
-     position:fixed로 항상 화면 전체를 덮는다 (requestFullscreen 거부 대비 기본 수단).
-     교실에서 학생들이 즉시 알아챌 수 있도록 시계를 확대 + 강조색으로 펄스시킨다. */
-  #overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: var(--color-sand-wash);
-    color: var(--color-charcoal-ink);
+  /* 저학년용 화면 테마 */
+  body[data-ui-theme="sunny"] {
+    --fg: #29425f; --clock-fg: #26415f; --accent: #ff9f2f; --warn: #ee7b24;
+    --danger: #ef5261; --control-bg: rgba(255,255,255,0.68);
+    --theme-card: rgba(255,255,255,0.72); --theme-ink: #29425f;
+    --theme-shadow: rgba(91,126,160,0.25);
+    --theme-panel: rgba(255,250,221,0.98); --theme-panel-border: rgba(240,164,55,.48);
+    --theme-field: rgba(255,255,255,.86); --theme-field-border: rgba(91,126,160,.3);
+    --theme-option: #fff9dd; --theme-primary-ink: #513116;
+    --theme-bg: radial-gradient(circle at 85% 12%, rgba(255,248,168,.82) 0 8%, transparent 9%), linear-gradient(145deg, rgba(201,242,255,.72), rgba(255,244,189,.72));
+  }
+  body[data-ui-theme="forest"] {
+    --fg: #f8fff5; --clock-fg: #ffffff; --accent: #ffd55a; --warn: #ffd55a;
+    --danger: #ff8b85; --control-bg: rgba(255,255,255,0.17);
+    --theme-card: rgba(255,255,255,0.18); --theme-ink: #f8fff5;
+    --theme-shadow: rgba(18,67,47,0.30);
+    --theme-panel: rgba(25,92,70,.98); --theme-panel-border: rgba(224,255,204,.36);
+    --theme-field: rgba(255,255,255,.14); --theme-field-border: rgba(255,255,255,.28);
+    --theme-option: #185b47; --theme-primary-ink: #354009;
+    --theme-bg: radial-gradient(circle at 10% 95%, rgba(139,209,124,.76) 0 15%, transparent 16%), linear-gradient(150deg, rgba(58,153,112,.72), rgba(23,98,79,.72));
+  }
+  body[data-ui-theme="space"] {
+    --fg: #ffffff; --clock-fg: #fff7b2; --accent: #73e6ff; --warn: #ffd75e;
+    --danger: #ff7895; --control-bg: rgba(255,255,255,0.13);
+    --theme-card: rgba(120,116,255,0.20); --theme-ink: #ffffff;
+    --theme-shadow: rgba(5,4,38,0.40);
+    --theme-panel: rgba(29,27,82,.98); --theme-panel-border: rgba(150,184,255,.38);
+    --theme-field: rgba(255,255,255,.12); --theme-field-border: rgba(157,194,255,.3);
+    --theme-option: #25235e; --theme-primary-ink: #153b49;
+    --theme-bg: radial-gradient(circle at 18% 20%, rgba(255,255,255,.9) 0 1px, transparent 2px), radial-gradient(circle at 82% 32%, rgba(255,245,162,.9) 0 2px, transparent 3px), linear-gradient(145deg, rgba(64,58,145,.76), rgba(21,24,73,.76));
+    background-size: auto, auto, auto;
+  }
+  body:not([data-ui-theme="classic"]) #clockTime, body:not([data-ui-theme="classic"]) #timeText {
+    -webkit-text-stroke: 1px rgba(0,0,0,.18);
+    text-shadow: 0 2px 3px rgba(255,255,255,.28), 0 5px 14px rgba(0,0,0,.52);
+  }
+  body[data-ui-theme="sunny"] #clockTime,
+  body[data-ui-theme="sunny"] #timeText {
+    -webkit-text-stroke: 0;
+    text-shadow: 0 3px 7px rgba(41,66,95,.22);
+  }
+  body:not([data-ui-theme="classic"]) .controls button,
+  body:not([data-ui-theme="classic"]) .presets button,
+  body:not([data-ui-theme="classic"]) .bottomnav button {
+    border: 2px solid rgba(255,255,255,0.42);
+    box-shadow: 0 3px 0 var(--theme-shadow);
+    font-weight: 750;
+  }
+  body:not([data-ui-theme="classic"]) .controls button:active,
+  body:not([data-ui-theme="classic"]) .presets button:active,
+  body:not([data-ui-theme="classic"]) .bottomnav button:active { transform: translateY(2px); box-shadow: none; }
+  body:not([data-ui-theme="classic"]) .controls button.primary { color: #173c42; }
+  body[data-ui-theme="classic"] #app::before { opacity: 0; }
+  body:not([data-ui-theme="classic"]) .titlebar .icon-btn {
+    border: 1px solid rgba(255,255,255,.34);
+    background: rgba(255,255,255,.12);
+  }
+  body:not([data-ui-theme="classic"]) .titlebar .icon-btn:hover { background: rgba(255,255,255,.3); }
+  body:not([data-ui-theme="classic"]) .progress-wrap {
+    background: rgba(255,255,255,.25); border: 1px solid rgba(255,255,255,.35);
+    box-shadow: 0 2px 0 var(--theme-shadow);
+  }
+
+  /* 테마별 알람 발동 화면: 기본 UI의 사용자 지정 색상은 건드리지 않는다. */
+  body[data-ui-theme="sunny"] #overlay {
+    background: radial-gradient(circle at 84% 16%, #fff18b 0 9%, transparent 10%), linear-gradient(150deg,#69ccf2,#ffe590);
+    color: #29425f;
+  }
+  body[data-ui-theme="forest"] #overlay {
+    background: radial-gradient(circle at 12% 92%, #8ed478 0 17%, transparent 18%), linear-gradient(150deg,#55ae79,#135a47);
+  }
+  body[data-ui-theme="space"] #overlay {
+    background: radial-gradient(circle at 18% 20%,#fff 0 2px,transparent 3px), radial-gradient(circle at 80% 25%,#ffe88a 0 3px,transparent 4px), linear-gradient(150deg,#554eb0,#12143e);
+  }
+  body:not([data-ui-theme="classic"]) #overlay {
+    border-radius: 18px; box-shadow: inset 0 0 0 3px rgba(255,255,255,.22);
+  }
+  body:not([data-ui-theme="classic"]) #overlayTime,
+  body:not([data-ui-theme="classic"]) #overlayMsg {
+    color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.12), 0 6px 16px rgba(0,0,0,.28);
+  }
+  body[data-ui-theme="sunny"] #overlayTime,
+  body[data-ui-theme="sunny"] #overlayMsg { color:#29425f; text-shadow:0 2px 0 rgba(255,255,255,.65); }
+  body:not([data-ui-theme="classic"]) .overlay-actions button {
+    border: 2px solid rgba(255,255,255,.48); border-radius: 16px;
+    box-shadow: 0 4px 0 var(--theme-shadow);
+  }
+  body:not([data-ui-theme="classic"]) #dismissBtn { background:var(--accent); color:var(--theme-primary-ink); }
+  body:not([data-ui-theme="classic"]) #snoozeBtn,
+  body:not([data-ui-theme="classic"]) #fullscreenBtn { background:rgba(255,255,255,.2) !important; color:#fff !important; }
+  body[data-ui-theme="sunny"] #snoozeBtn,
+  body[data-ui-theme="sunny"] #fullscreenBtn { color:#29425f !important; }
+  body:not([data-ui-theme="classic"]) .corner-hint { opacity:.75; }
+  body[data-ui-theme="sunny"] #clockDate,
+  body[data-ui-theme="sunny"] #clockNextAlarm { text-shadow: 0 1px 3px #fff, 0 2px 7px rgba(0,0,0,.45); }
+
+  .titlebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    -webkit-app-region: no-drag;   /* 드래그/더블클릭 최대화를 JS로 직접 처리(아래 스크립트) */
+    flex-shrink: 0;
+  }
+  .titlebar-actions { display: flex; align-items: center; gap: 4px; }
+  .icon-btn {
+    -webkit-app-region: no-drag;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    color: var(--fg);
+    opacity: 0.85;
+    font-size: 17px;
+    cursor: pointer;
+    width: 34px; height: 34px;
+    padding: 0;
+    border-radius: 6px;
+    line-height: 1;
+    vertical-align: middle;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.65);
+  }
+  .icon-btn:hover { opacity: 1; background: rgba(0,0,0,0.48); }
+  .icon-btn.active { opacity: 1; background: rgba(62,207,142,0.35); }
+  /* 이동 핸들: 클릭통과 모드에서도 창을 옮길 수 있는 위치를 항상 눈에 띄게 표시 */
+  #dragHandle { cursor: move; }
+  body[data-click-through="true"] #dragHandle {
+    background: rgba(62,207,142,0.4);
+    opacity: 1;
+  }
+
+  .view {
+    flex: 1;
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    text-align: center;
-    padding: 24px;
-    font-family: var(--font-mono);
+    min-height: 0;
+    /* 배경이 없는 평소 화면에서 뒤 창을 가리지 않도록 이 영역은 드래그/클릭을 받지 않음(맨 위 타이틀바만 조작 가능) */
+    -webkit-app-region: no-drag;
+    pointer-events: none;
+    gap: clamp(2px, 1.5vh, 10px);
   }
-  #overlay.show { display: flex; }
-  .overlay-time {
-    font-size: var(--overlay-clock-size);
+  .view.active { display: flex; }
+  .view .controls, .view .presets { pointer-events: auto; }   /* pointer-events는 상속되므로 버튼도 자동으로 클릭 가능 */
+
+  /* ---------- 시계 뷰 ---------- */
+  #clockTime {
+    font-weight: 800;
     font-variant-numeric: tabular-nums;
-    background: var(--color-highlight-yellow);
-    padding: 8px 28px;
-    border-radius: var(--radius-cards);
-    animation: pulse 1.1s ease-in-out infinite;
+    font-size: clamp(44px, 42vh, 360px);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--clock-fg);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);   /* 어떤 배경 위에서도 잘 보이도록 */
   }
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
+  #clockDate {
+    font-size: clamp(13px, 4vh, 38px);
+    opacity: 0.85;
+    font-weight: 700;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.55);
   }
-  .overlay-msg {
-    margin-top: 28px;
-    font-size: 25px;
-    max-width: 480px;
-    word-break: break-all;
-    background: var(--color-highlight-cyan);
-    padding: 14px 22px;
-    border-radius: var(--radius-cards);
+  #clockNextAlarm {
+    font-size: clamp(10px, 2.6vh, 22px);
+    opacity: 0.7;
+    font-weight: 600;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.55);
   }
-  .overlay-speaking {
-    margin-top: 14px;
-    font-size: 12px;
-    color: var(--color-charcoal-ink);
+
+  /* ---------- 타이머 뷰 ---------- */
+  #timeText {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(40px, 40vh, 320px);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: var(--clock-fg);
+    transition: color 0.3s ease, transform 0.3s ease;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.55);
   }
-  .overlay-actions { margin-top: 40px; display: flex; gap: 14px; }
-  .overlay-actions button {
-    padding: 14px 28px;
-    border-radius: var(--radius-buttons);
+  #timeText.warn { color: var(--warn); }
+  #timeText.danger { color: var(--danger); transform: scale(1.04); }
+
+  .activity-label {
+    max-width: 88%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: clamp(15px, 4.5vh, 34px);
+    line-height: 1.15;
+    font-weight: 800;
+    color: var(--theme-ink);
+    text-align: center;
+    text-shadow: 0 1px 5px rgba(0,0,0,.2);
+  }
+  .timer-status {
+    min-height: 1.4em;
+    font-size: clamp(13px, 3.6vh, 26px);
+    line-height: 1.2;
+    font-weight: 800;
+    color: var(--theme-ink);
+    text-align: center;
+  }
+  .timer-status.warn { color: #94510d; }
+  .timer-status.danger { color: #b51f33; }
+  body[data-ui-theme="forest"] .timer-status.warn,
+  body[data-ui-theme="space"] .timer-status.warn { color: var(--warn); }
+  body[data-ui-theme="forest"] .timer-status.danger,
+  body[data-ui-theme="space"] .timer-status.danger { color: var(--danger); }
+
+  .progress-wrap {
+    width: 80%;
+    height: clamp(14px, 3.2vh, 24px);
+    background: rgba(255,255,255,0.15);
+    border-radius: 999px;
+    overflow: hidden;
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+  }
+  #progressBar {
+    height: 100%; width: 100%;
+    background: var(--accent);
+    transition: width 0.25s linear, background 0.3s ease;
+  }
+  #progressBar.warn { background: var(--warn); }
+  #progressBar.danger { background: var(--danger); }
+
+  .controls, .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+  }
+  .controls { padding: 6px 10px 8px; }
+  .presets { padding: 0 10px 4px; }
+  .controls button, .presets button {
+    -webkit-app-region: no-drag;
+    background: var(--control-bg);
+    color: var(--fg);
     border: none;
-    font-family: var(--font-mono);
-    font-size: 15px;
+    min-height: 40px;
+    border-radius: 11px;
+    padding: 8px 14px;
+    font-size: clamp(12px, 2.1vh, 16px);
+    font-weight: 700;
     cursor: pointer;
   }
-  #snoozeBtn { background: var(--color-fog-mist); color: var(--color-charcoal-ink); }
-  #dismissBtn { background: var(--color-paper-white); color: var(--color-charcoal-ink); box-shadow: var(--shadow-sm-2); }
+  .controls button:hover, .presets button:hover { background: rgba(255,255,255,0.25); }
+  .controls button.primary { background: var(--accent); color: #08321f; font-weight: 700; }
+  .controls button.primary { min-width: 112px; font-size: clamp(14px, 2.6vh, 19px); }
+  .controls button.reset-armed { background: var(--danger); color: #fff; }
+
+  .activity-editor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: min(86%, 520px);
+    pointer-events: auto;
+  }
+  .activity-editor label { font-size: 12px; font-weight: 800; white-space: nowrap; }
+  #activityInput {
+    min-width: 0;
+    flex: 1;
+    min-height: 38px;
+    border: 2px solid var(--theme-field-border);
+    border-radius: 10px;
+    padding: 7px 10px;
+    background: var(--theme-field);
+    color: var(--fg);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    user-select: text;
+    outline: none;
+  }
+  #activityInput:focus { border-color: var(--accent); }
+
+  /* 실행 중에는 학생이 볼 핵심 정보만 남기고 교사용 설정은 접는다. */
+  body[data-timer-running="true"] .setup-only,
+  body[data-timer-running="true"] .bottomnav,
+  body[data-timer-running="true"] .titlebar { display: none; }
+  body[data-timer-running="false"] #timeText { font-size: clamp(52px, min(30vh, 26vw), 170px); }
+  body[data-timer-running="true"] #timerView { gap: clamp(7px, 2.2vh, 20px); }
+  body[data-timer-running="true"] #timeText { font-size: clamp(54px, min(46vh, 30vw), 390px); }
+  body[data-timer-running="true"] .focus-controls { padding-bottom: clamp(8px, 2vh, 18px); }
+  body[data-timer-running="false"] .focus-only { display: none; }
+  body[data-timer-running="false"] .activity-label { display: none; }
+
+  /* ---------- 하단 네비 ---------- */
+  .bottomnav {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    padding: 4px 8px 8px;
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+  }
+  .bottomnav button {
+    -webkit-app-region: no-drag;
+    background: var(--control-bg);
+    color: var(--fg);
+    border: none;
+    border-radius: 8px;
+    min-height: 38px;
+    padding: 7px 18px;
+    font-size: clamp(12px, 2vh, 15px);
+    cursor: pointer;
+    opacity: 0.7;
+  }
+  .bottomnav button.active { opacity: 1; background: rgba(62,207,142,0.35); font-weight: 700; }
+
+  /* 모서리 크기조절 힌트: 배경이 투명해도 어디를 잡아야 크기를 조절할 수 있는지 보이도록 */
+  .corner-hint {
+    position: absolute;
+    width: 16px; height: 16px;
+    pointer-events: none;
+    opacity: 0.55;
+  }
+  .corner-hint.tl { top: 2px; left: 2px; border-top: 3px solid rgba(255,255,255,0.55); border-left: 3px solid rgba(255,255,255,0.55); border-top-left-radius: 8px; }
+  .corner-hint.tr { top: 2px; right: 2px; border-top: 3px solid rgba(255,255,255,0.55); border-right: 3px solid rgba(255,255,255,0.55); border-top-right-radius: 8px; }
+  .corner-hint.bl { bottom: 2px; left: 2px; border-bottom: 3px solid rgba(255,255,255,0.55); border-left: 3px solid rgba(255,255,255,0.55); border-bottom-left-radius: 8px; }
+  .corner-hint.br { bottom: 2px; right: 2px; border-bottom: 3px solid rgba(255,255,255,0.55); border-right: 3px solid rgba(255,255,255,0.55); border-bottom-right-radius: 8px; }
+
+  /* ---------- 알람 발동 오버레이 ---------- */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 3vh, 28px);
+    background: linear-gradient(160deg, rgba(62,207,142,0.96), rgba(20,120,90,0.97));
+    border-radius: 14px;
+    z-index: 100;
+    -webkit-app-region: drag;
+    text-align: center;
+    padding: 20px;
+    --ov-scale: 1;
+  }
+  #overlay[data-color="green"]  { background: linear-gradient(160deg, #3ecf8e, #14785a); }
+  #overlay[data-color="blue"]   { background: linear-gradient(160deg, #4696ff, #1446a0); }
+  #overlay[data-color="orange"] { background: linear-gradient(160deg, #ffa03c, #be5a0a); }
+  #overlay[data-color="pink"]   { background: linear-gradient(160deg, #ff78b4, #be286e); }
+  #overlay[data-color="red"]    { background: linear-gradient(160deg, #ff5a5a, #aa1414); }
+  #overlay[data-color="dark"]   { background: linear-gradient(160deg, #2d2d37, #0f0f14); }
+  #overlay.show { display: flex; animation: popin 0.35s ease; }
+  @keyframes popin { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  #overlayTime {
+    font-size: calc(clamp(22px, 9vh, 68px) * var(--ov-scale));
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,0.85);
+  }
+  #overlayMsg {
+    font-size: calc(clamp(30px, 11vh, 108px) * var(--ov-scale));
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.2;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    max-width: 94%;
+    word-break: keep-all;
+  }
+  .overlay-actions { display: flex; gap: 14px; -webkit-app-region: no-drag; }
+  .overlay-actions button {
+    -webkit-app-region: no-drag;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 26px;
+    font-size: clamp(13px, 3vh, 22px);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #dismissBtn { background: #ffffff; color: #0d5c3d; }
+  #snoozeBtn { background: rgba(255,255,255,0.25); color: #ffffff; }
+  .overlay-actions button:active { transform: translateY(2px); }
+
+  @media (max-height: 260px) {
+    .activity-editor { display: none; }
+    .controls button, .presets button { min-height: 34px; padding: 5px 10px; }
+    body[data-timer-running="true"] .focus-controls { display: flex; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 </style>
 </head>
-<body>
-<div class="page">
-
-  <div class="topbar">classroom (a)<span class="hl">l</span>arm.</div>
-
-  <div class="grid">
-
-    <div class="card clock-card">
-      <div class="caption">(Y)our class clock.</div>
-      <div class="clock-time" id="clockTime">00:00:00</div>
-      <div class="clock-date" id="clockDate">----.--.--</div>
+<body data-ui-theme="sunny" data-timer-running="false">
+<div id="app">
+  <div class="corner-hint tl"></div>
+  <div class="corner-hint tr"></div>
+  <div class="corner-hint bl"></div>
+  <div class="corner-hint br"></div>
+  <div class="titlebar">
+    <button class="icon-btn" id="dragHandle" title="누른 채로 끌면 창을 옮길 수 있어요 (Alt+드래그는 어디서나 가능)" aria-label="창 이동">⠿</button>
+    <div class="titlebar-actions">
+      <button class="icon-btn" id="alarmBtn" title="알람 목록" aria-label="알람 목록">⏰</button>
+      <button class="icon-btn" id="settingsBtn" title="설정" aria-label="설정">⚙</button>
+      <button class="icon-btn" id="minimizeBtn" title="최소화" aria-label="최소화">—</button>
+      <button class="icon-btn" id="maximizeBtn" title="최대화" aria-label="최대화">□</button>
+      <button class="icon-btn" id="closeBtn" title="닫기" aria-label="닫기">✕</button>
     </div>
+  </div>
 
-    <div class="card">
-      <div class="caption">(Y)our new alarm.</div>
-      <form id="alarmForm">
-        <label class="field">
-          <span>시간</span>
-          <input type="time" step="1" id="timeInput" required>
-        </label>
-        <label class="field">
-          <span>읽어줄 메시지 (최대 60자)</span>
-          <input type="text" id="msgInput" maxlength="60" placeholder="예: 자리에 앉아 수업 준비를 하세요!">
-        </label>
-        <label class="field">
-          <span>반복 요일 (미선택 시 1회용)</span>
-          <div class="day-toggles" id="dayToggles">
-            <button type="button" class="day-btn" data-day="0">일</button>
-            <button type="button" class="day-btn" data-day="1">월</button>
-            <button type="button" class="day-btn" data-day="2">화</button>
-            <button type="button" class="day-btn" data-day="3">수</button>
-            <button type="button" class="day-btn" data-day="4">목</button>
-            <button type="button" class="day-btn" data-day="5">금</button>
-            <button type="button" class="day-btn" data-day="6">토</button>
-          </div>
-        </label>
-        <div class="row">
-          <button type="button" class="btn" id="previewBtn">미리듣기</button>
-          <button type="submit" class="btn btn-solid">알람 추가</button>
-        </div>
-        <p class="hint">알람음 대신, 입력한 메시지를 음성으로 읽어줍니다.</p>
-      </form>
+  <!-- 시계 뷰 (기본) -->
+  <div class="view active" id="clockView">
+    <div id="clockTime">00:00</div>
+    <div id="clockDate">—</div>
+    <div id="clockNextAlarm"></div>
+  </div>
+
+  <!-- 타이머 뷰 -->
+  <div class="view" id="timerView">
+    <div class="activity-editor setup-only">
+      <label for="activityInput">활동</label>
+      <input id="activityInput" type="text" maxlength="30" value="집중 시간" placeholder="예: 수학 문제 풀기" />
     </div>
-
-    <div class="card">
-      <div class="caption">(Y)our settings.</div>
-
-      <label class="field">
-        <span>알람 화면 시계 크기 (<span id="clockSizeValue">64</span>px)</span>
-        <input type="range" id="clockSizeInput" min="40" max="140" step="4" value="64">
-      </label>
-
-      <label class="field">
-        <span>메시지 반복 횟수 (0 = 끄기 전까지 무한)</span>
-        <input type="number" id="repeatCountInput" min="0" max="50" value="0">
-      </label>
-
-      <label class="field">
-        <span>반복 간격 (초)</span>
-        <input type="number" id="repeatIntervalInput" min="1" max="30" value="3">
-      </label>
-
-      <label class="field">
-        <span>알람 표시 모니터</span>
-        <div class="row" style="margin-bottom: 8px;">
-          <button type="button" class="btn" id="detectScreensBtn">모니터 감지</button>
-        </div>
-        <select id="screenSelect" disabled>
-          <option value="">현재 창과 같은 화면</option>
-        </select>
-        <p class="hint" id="screenHint">다중 모니터 선택은 Chrome/Edge에서만 지원됩니다. 먼저 '모니터 감지'를 눌러 권한을 허용하세요.</p>
-      </label>
+    <div id="activityLabel" class="activity-label">집중 시간</div>
+    <div id="timeText" role="timer" aria-label="남은 시간 5분">05:00</div>
+    <div class="progress-wrap" id="progressWrap" role="progressbar" aria-label="남은 시간" aria-valuemin="0" aria-valuemax="300" aria-valuenow="300"><div id="progressBar"></div></div>
+    <div id="timerStatus" class="timer-status" aria-live="polite">준비되면 시작해요</div>
+    <div class="presets setup-only" aria-label="시간 빠른 선택">
+      <button data-sec="60">1분</button>
+      <button data-sec="180">3분</button>
+      <button data-sec="300">5분</button>
+      <button data-sec="600">10분</button>
+      <button data-sec="900">15분</button>
+      <button data-sec="1200">20분</button>
     </div>
-
-    <div class="card">
-      <div class="caption">(Y)our alarm list.</div>
-      <div id="alarmList"></div>
+    <div class="controls setup-only">
+      <button id="modeBtn">스톱워치로</button>
+      <button id="minusOne" aria-label="1분 줄이기">−1분</button>
+      <button id="plusOne" aria-label="1분 늘리기">+1분</button>
+      <button id="plusFive" aria-label="5분 늘리기">+5분</button>
+      <button id="resetBtn">처음으로</button>
+      <button id="startBtn" class="primary">시작</button>
     </div>
+    <div class="controls focus-controls focus-only">
+      <button id="focusStartBtn" class="primary">일시정지</button>
+      <button id="focusPlusOne" aria-label="1분 추가">+1분</button>
+      <button id="focusExitBtn">시간 바꾸기</button>
+    </div>
+  </div>
 
+  <!-- 하단 네비 -->
+  <div class="bottomnav">
+    <button id="navClock" class="active">시계</button>
+    <button id="navTimer">타이머</button>
+  </div>
+
+  <!-- 알람 발동 오버레이 -->
+  <div id="overlay">
+    <div id="overlayTime">00:00</div>
+    <div id="overlayMsg">시간 종료!</div>
+    <div class="overlay-actions">
+      <button id="fullscreenBtn" style="background:rgba(255,255,255,0.18); color:#fff;">전체화면</button>
+      <button id="snoozeBtn">5분 미루기</button>
+      <button id="dismissBtn">끄기</button>
+    </div>
   </div>
 </div>
-
-<div id="overlay">
-  <div class="overlay-time" id="overlayTime">00:00</div>
-  <div class="overlay-msg" id="overlayMsg">알람</div>
-  <div class="overlay-speaking" id="overlaySpeaking">🔊 음성 안내 중...</div>
-  <div class="overlay-actions">
-    <button id="snoozeBtn">5분 후</button>
-    <button id="dismissBtn">끄기</button>
-  </div>
-</div>
-
-<script>
-(function () {
-  "use strict";
-
-  var DEFAULT_MSG = "수업 준비할 시간입니다. 자리에 앉아주세요.";
-
-  // ---------- 유틸 ----------
-  function pad(n) { return String(n).padStart(2, "0"); }
-
-  function escapeHtml(str) {
-    return String(str || "").replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
-
-  function normalizeTime(t) {
-    // <input type="time" step="1">은 보통 HH:MM:SS를 반환하지만,
-    // 일부 브라우저/환경에서 HH:MM만 줄 수 있어 보정한다.
-    if (!t) return "";
-    return t.length === 5 ? t + ":00" : t;
-  }
-
-  function formatTime12(t) {
-    var parts = t.split(":").map(Number);
-    var h = parts[0], m = parts[1], s = parts[2] || 0;
-    var period = h < 12 ? "오전" : "오후";
-    var h12 = h % 12;
-    if (h12 === 0) h12 = 12;
-    return period + " " + pad(h12) + ":" + pad(m) + ":" + pad(s);
-  }
-
-  var DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-
-  function repeatLabel(days) {
-    if (!days || days.length === 0) return "1회";
-    return days.slice().sort(function (a, b) { return a - b; })
-      .map(function (d) { return DAY_NAMES[d]; }).join(", ");
-  }
-
-  // ---------- localStorage: 알람 ----------
-  var STORAGE_KEY = "alarms";
-
-  function loadAlarms() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function saveAlarms() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(alarms));
-  }
-
-  var alarms = loadAlarms();
-  var firedKeys = new Set();
-
-  // ---------- localStorage: 설정 ----------
-  var SETTINGS_KEY = "alarmSettings";
-  var DEFAULT_SETTINGS = {
-    clockSize: 64,      // 발동 화면 시계 폰트 크기(px)
-    repeatCount: 0,     // 메시지 반복 횟수, 0이면 끄기 전까지 무한
-    repeatInterval: 3,  // 반복 간격(초)
-    screen: null        // 선택된 모니터 스냅샷 { left, top, width, height, label }
-  };
-
-  function loadSettings() {
-    try {
-      var raw = localStorage.getItem(SETTINGS_KEY);
-      var parsed = raw ? JSON.parse(raw) : {};
-      return Object.assign({}, DEFAULT_SETTINGS, parsed);
-    } catch (e) {
-      return Object.assign({}, DEFAULT_SETTINGS);
-    }
-  }
-
-  function saveSettings() {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  }
-
-  var settings = loadSettings();
-
-  // ---------- 음성 안내 (Web Speech API) ----------
-  var speakLoopActive = false;
-  var speakTimeout = null;
-
-  function speakOnce(text, onend) {
-    if (!("speechSynthesis" in window)) {
-      if (onend) onend();
-      return;
-    }
-    var utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "ko-KR";
-    utter.rate = 0.95;
-    utter.pitch = 1;
-    if (onend) utter.onend = onend;
-    window.speechSynthesis.speak(utter);
-  }
-
-  function startSpeakingLoop(text) {
-    stopSpeakingLoop();
-    speakLoopActive = true;
-    var count = 0;
-    var maxCount = settings.repeatCount || 0; // 0 = 무한
-    var intervalMs = (settings.repeatInterval || 3) * 1000;
-    function loop() {
-      if (!speakLoopActive) return;
-      count++;
-      speakOnce(text, function () {
-        if (!speakLoopActive) return;
-        if (maxCount > 0 && count >= maxCount) {
-          speakLoopActive = false; // 설정한 횟수만큼 다 읽으면 음성만 멈추고, 화면은 끄기 전까지 유지
-          return;
-        }
-        speakTimeout = setTimeout(loop, intervalMs);
-      });
-    }
-    loop();
-  }
-
-  function stopSpeakingLoop() {
-    speakLoopActive = false;
-    if (speakTimeout) {
-      clearTimeout(speakTimeout);
-      speakTimeout = null;
-    }
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-  }
-
-  // ---------- DOM 참조 ----------
-  var clockTime = document.getElementById("clockTime");
-  var clockDate = document.getElementById("clockDate");
-  var form = document.getElementById("alarmForm");
-  var timeInput = document.getElementById("timeInput");
-  var msgInput = document.getElementById("msgInput");
-  var previewBtn = document.getElementById("previewBtn");
-  var dayToggles = document.getElementById("dayToggles");
-  var listEl = document.getElementById("alarmList");
-  var overlay = document.getElementById("overlay");
-  var overlayTime = document.getElementById("overlayTime");
-  var overlayMsg = document.getElementById("overlayMsg");
-  var snoozeBtn = document.getElementById("snoozeBtn");
-  var dismissBtn = document.getElementById("dismissBtn");
-
-  var clockSizeInput = document.getElementById("clockSizeInput");
-  var clockSizeValue = document.getElementById("clockSizeValue");
-  var repeatCountInput = document.getElementById("repeatCountInput");
-  var repeatIntervalInput = document.getElementById("repeatIntervalInput");
-  var detectScreensBtn = document.getElementById("detectScreensBtn");
-  var screenSelect = document.getElementById("screenSelect");
-  var screenHint = document.getElementById("screenHint");
-
-  var selectedDays = new Set();
-
-  Array.prototype.forEach.call(dayToggles.querySelectorAll(".day-btn"), function (btn) {
-    btn.addEventListener("click", function () {
-      var d = Number(btn.dataset.day);
-      if (selectedDays.has(d)) {
-        selectedDays.delete(d);
-        btn.classList.remove("active");
-      } else {
-        selectedDays.add(d);
-        btn.classList.add("active");
-      }
-    });
-  });
-
-  previewBtn.addEventListener("click", function () {
-    speakOnce(msgInput.value.trim() || DEFAULT_MSG);
-  });
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-
-    var time = normalizeTime(timeInput.value);
-    if (!time) return;
-
-    var days = Array.from(selectedDays).sort(function (a, b) { return a - b; });
-
-    alarms.push({
-      id: Date.now(),
-      time: time,
-      msg: msgInput.value.trim().slice(0, 60),
-      days: days,
-      on: true
-    });
-
-    saveAlarms();
-    render();
-
-    msgInput.value = "";
-    selectedDays.clear();
-    Array.prototype.forEach.call(dayToggles.querySelectorAll(".day-btn"), function (btn) {
-      btn.classList.remove("active");
-    });
-  });
-
-  listEl.addEventListener("change", function (e) {
-    if (!e.target.classList.contains("toggle-on")) return;
-    var id = Number(e.target.dataset.id);
-    var alarm = alarms.find(function (a) { return a.id === id; });
-    if (!alarm) return;
-    alarm.on = e.target.checked;
-    saveAlarms();
-    render();
-  });
-
-  listEl.addEventListener("click", function (e) {
-    if (!e.target.classList.contains("del-btn")) return;
-    var id = Number(e.target.dataset.id);
-    alarms = alarms.filter(function (a) { return a.id !== id; });
-    saveAlarms();
-    render();
-  });
-
-  function render() {
-    alarms.sort(function (a, b) { return a.time.localeCompare(b.time); });
-
-    if (alarms.length === 0) {
-      listEl.innerHTML = '<p class="empty">등록된 알람이 없습니다</p>';
-      return;
-    }
-
-    listEl.innerHTML = alarms.map(function (a) {
-      return (
-        '<div class="alarm-item' + (a.on ? "" : " off") + '">' +
-          '<div class="alarm-info">' +
-            '<div class="alarm-time">' + formatTime12(a.time) + "</div>" +
-            '<div class="alarm-msg">' + escapeHtml(a.msg || DEFAULT_MSG) + "</div>" +
-            '<div class="alarm-repeat">' + repeatLabel(a.days) + "</div>" +
-          "</div>" +
-          '<div class="alarm-actions">' +
-            '<label class="switch">' +
-              '<input type="checkbox" class="toggle-on" data-id="' + a.id + '" ' + (a.on ? "checked" : "") + ">" +
-              '<span class="slider"></span>' +
-            "</label>" +
-            '<button class="del-btn" data-id="' + a.id + '">삭제</button>' +
-          "</div>" +
-        "</div>"
-      );
-    }).join("");
-  }
-
-  // ---------- 설정: 시계 크기 ----------
-  function applyClockSize(px) {
-    document.documentElement.style.setProperty("--overlay-clock-size", px + "px");
-  }
-
-  clockSizeInput.value = settings.clockSize;
-  clockSizeValue.textContent = settings.clockSize;
-  applyClockSize(settings.clockSize);
-
-  clockSizeInput.addEventListener("input", function () {
-    var v = Number(clockSizeInput.value);
-    settings.clockSize = v;
-    clockSizeValue.textContent = v;
-    applyClockSize(v);
-    saveSettings();
-  });
-
-  // ---------- 설정: 반복 횟수 / 간격 ----------
-  repeatCountInput.value = settings.repeatCount;
-  repeatIntervalInput.value = settings.repeatInterval;
-
-  repeatCountInput.addEventListener("change", function () {
-    settings.repeatCount = Math.max(0, Number(repeatCountInput.value) || 0);
-    repeatCountInput.value = settings.repeatCount;
-    saveSettings();
-  });
-
-  repeatIntervalInput.addEventListener("change", function () {
-    settings.repeatInterval = Math.min(30, Math.max(1, Number(repeatIntervalInput.value) || 3));
-    repeatIntervalInput.value = settings.repeatInterval;
-    saveSettings();
-  });
-
-  // ---------- 설정: 모니터 선택 (Window Management API) ----------
-  var detectedScreens = [];
-
-  function populateScreenSelect() {
-    screenSelect.disabled = detectedScreens.length === 0;
-    var options = ['<option value="">현재 창과 같은 화면</option>'];
-    detectedScreens.forEach(function (s, i) {
-      var label = (s.label || ("모니터 " + (i + 1))) + (s.isPrimary ? " (주 모니터)" : "") + " · " + s.width + "x" + s.height;
-      var isSelected = settings.screen && settings.screen.left === s.left && settings.screen.top === s.top;
-      options.push('<option value="' + i + '"' + (isSelected ? " selected" : "") + ">" + escapeHtml(label) + "</option>");
-    });
-    screenSelect.innerHTML = options.join("");
-  }
-
-  if (settings.screen) {
-    screenHint.textContent = "마지막으로 선택한 모니터: " + (settings.screen.label || "이름 없음") + " (재감지 시 다시 선택해주세요)";
-  }
-
-  detectScreensBtn.addEventListener("click", function () {
-    if (!("getScreenDetails" in window)) {
-      screenHint.textContent = "이 브라우저는 다중 모니터 감지를 지원하지 않습니다. (Chrome/Edge 최신 버전 권장)";
-      return;
-    }
-    window.getScreenDetails().then(function (details) {
-      detectedScreens = details.screens || [];
-      populateScreenSelect();
-      screenHint.textContent = detectedScreens.length + "개의 모니터를 찾았습니다. 알람을 표시할 모니터를 선택하세요.";
-    }).catch(function () {
-      screenHint.textContent = "모니터 정보 접근 권한이 거부되었습니다.";
-    });
-  });
-
-  screenSelect.addEventListener("change", function () {
-    var idx = screenSelect.value;
-    if (idx === "") {
-      settings.screen = null;
-    } else {
-      var s = detectedScreens[Number(idx)];
-      settings.screen = {
-        left: s.left,
-        top: s.top,
-        width: s.width,
-        height: s.height,
-        label: (s.label || ("모니터 " + (Number(idx) + 1))) + (s.isPrimary ? " (주 모니터)" : "")
-      };
-    }
-    saveSettings();
-  });
-
-  // 저장된 모니터를 다시 찾아 ScreenDetailed 객체로 매칭한다 (좌표는 세션마다 동일하게 유지됨).
-  function resolveTargetScreen() {
-    if (!settings.screen || !("getScreenDetails" in window)) {
-      return Promise.resolve(null);
-    }
-    return window.getScreenDetails().then(function (details) {
-      var match = (details.screens || []).find(function (s) {
-        return s.left === settings.screen.left && s.top === settings.screen.top;
-      });
-      return match || null;
-    }).catch(function () {
-      return null;
-    });
-  }
-
-  // ---------- 시계 + 발동 검사 ----------
-  function updateClock() {
-    var now = new Date();
-    clockTime.textContent = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
-    clockDate.textContent =
-      now.getFullYear() + "." + pad(now.getMonth() + 1) + "." + pad(now.getDate()) +
-      " (" + DAY_NAMES[now.getDay()] + ")";
-  }
-
-  function checkAlarms() {
-    var now = new Date();
-    var curTime = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
-    var curDay = now.getDay();
-    var todayKey = now.toDateString();
-    var changed = false;
-
-    alarms.slice().forEach(function (alarm) {
-      if (!alarm.on || alarm.time !== curTime) return;
-
-      var isRepeat = alarm.days && alarm.days.length > 0;
-      if (isRepeat && alarm.days.indexOf(curDay) === -1) return;
-
-      // 같은 알람이 같은 날 같은 시각에 중복 발동되지 않도록 가드
-      var fireKey = alarm.id + "_" + todayKey + "_" + curTime;
-      if (firedKeys.has(fireKey)) return;
-      firedKeys.add(fireKey);
-
-      if (!isRepeat) {
-        alarms = alarms.filter(function (a) { return a.id !== alarm.id; });
-        changed = true;
-      }
-
-      triggerAlarm(alarm);
-    });
-
-    if (changed) {
-      saveAlarms();
-      render();
-    }
-  }
-
-  // ---------- 알람 발동: 본창 오버레이 ----------
-  var currentAlarm = null;
-  var activePopup = null;
-
-  function notify(alarm) {
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
-    try {
-      new Notification("⏰ 교실 알람", { body: alarm.msg || DEFAULT_MSG });
-    } catch (e) {
-      /* 일부 환경(예: 권한 정책 변경)에서 생성 실패 시 무시 */
-    }
-  }
-
-  function showInPageOverlay(alarm, msg) {
-    overlayTime.textContent = formatTime12(alarm.time);
-    overlayMsg.textContent = msg;
-    overlay.classList.add("show");
-
-    // 전체화면 API는 사용자 제스처 없이 호출되면 거부될 수 있어 보조 수단으로만 시도한다.
-    // 메인 알림 수단은 position:fixed 오버레이(이미 화면 전체를 덮음)이다.
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(function () {});
-    }
-  }
-
-  // 선택한 모니터 위치/크기에 맞춰 별도 팝업 창을 띄워 알람 화면을 표시한다.
-  // (file:// 단일 파일 구조라 팝업 안에 동일한 마크업을 직접 작성하고,
-  //  버튼 클릭은 window.opener를 통해 본창의 끄기/스누즈 로직을 그대로 재사용한다.)
-  function openOverlayPopup(targetScreen, alarm, msg) {
-    var features = "left=" + targetScreen.left + ",top=" + targetScreen.top +
-      ",width=" + targetScreen.width + ",height=" + targetScreen.height;
-    var win = window.open("", "classroomAlarmPopup", features);
-    if (!win) {
-      showInPageOverlay(alarm, msg);
-      return;
-    }
-    activePopup = win;
-
-    var html =
-      '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><style>' +
-      'html,body{margin:0;height:100%;background:#e2ceb8;display:flex;flex-direction:column;' +
-      'align-items:center;justify-content:center;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#303030;}' +
-      '.t{font-size:' + settings.clockSize + 'px;background:#f9f5a2;padding:8px 28px;border-radius:20px;' +
-      'animation:p 1.1s ease-in-out infinite;font-variant-numeric:tabular-nums;}' +
-      '@keyframes p{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}' +
-      '.m{margin-top:28px;font-size:25px;max-width:480px;word-break:break-all;background:#c7f6ff;' +
-      'padding:14px 22px;border-radius:20px;text-align:center;}' +
-      '.a{margin-top:40px;display:flex;gap:14px;}' +
-      'button{padding:14px 28px;border-radius:20px;border:none;font-family:inherit;font-size:15px;cursor:pointer;}' +
-      '#s{background:#f2f2f2;color:#303030;} #d{background:#fff;color:#303030;box-shadow:rgba(0,0,0,.18) 0 1px 4px;}' +
-      '</style></head><body>' +
-      '<div class="t">' + escapeHtml(formatTime12(alarm.time)) + '</div>' +
-      '<div class="m">' + escapeHtml(msg) + '</div>' +
-      '<div class="a"><button id="s">5분 후</button><button id="d">끄기</button></div>' +
-      '<script>' +
-      'document.getElementById("d").onclick=function(){ if(window.opener&&window.opener.__alarmDismiss) window.opener.__alarmDismiss(); window.close(); };' +
-      'document.getElementById("s").onclick=function(){ if(window.opener&&window.opener.__alarmSnooze) window.opener.__alarmSnooze(); window.close(); };' +
-      'if(document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(function(){}); }' +
-      '</' + 'script>' +
-      '</body></html>';
-
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-
-    try {
-      win.moveTo(targetScreen.left, targetScreen.top);
-      win.resizeTo(targetScreen.width, targetScreen.height);
-    } catch (e) {
-      /* 일부 브라우저는 스크립트로 연 창 이동/크기조절을 제한할 수 있음 - 무시 */
-    }
-  }
-
-  function triggerAlarm(alarm) {
-    currentAlarm = alarm;
-    var msg = alarm.msg || DEFAULT_MSG;
-
-    notify(alarm);
-    startSpeakingLoop(msg);
-
-    resolveTargetScreen().then(function (targetScreen) {
-      if (targetScreen) {
-        openOverlayPopup(targetScreen, alarm, msg);
-      } else {
-        showInPageOverlay(alarm, msg);
-      }
-    });
-  }
-
-  function exitOverlay() {
-    stopSpeakingLoop();
-    overlay.classList.remove("show");
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(function () {});
-    }
-    if (activePopup && !activePopup.closed) {
-      activePopup.close();
-    }
-    activePopup = null;
-  }
-
-  function doSnooze() {
-    var base = currentAlarm;
-    exitOverlay();
-
-    var t = new Date(Date.now() + 5 * 60 * 1000);
-    var timeStr = pad(t.getHours()) + ":" + pad(t.getMinutes()) + ":" + pad(t.getSeconds());
-
-    alarms.push({
-      id: Date.now(),
-      time: timeStr,
-      msg: (base && base.msg ? base.msg : DEFAULT_MSG) + " (스누즈)",
-      days: [],
-      on: true
-    });
-
-    saveAlarms();
-    render();
-    currentAlarm = null;
-  }
-
-  dismissBtn.addEventListener("click", function () {
-    exitOverlay();
-    currentAlarm = null;
-  });
-
-  snoozeBtn.addEventListener("click", doSnooze);
-
-  // 모니터에 띄운 팝업 창의 버튼이 본창으로 호출하는 진입점
-  window.__alarmDismiss = function () {
-    exitOverlay();
-    currentAlarm = null;
-  };
-  window.__alarmSnooze = doSnooze;
-
-  // ---------- 초기화 ----------
-  if (typeof Notification !== "undefined" && Notification.permission === "default") {
-    Notification.requestPermission().catch(function () {});
-  }
-
-  updateClock();
-  render();
-  setInterval(function () {
-    updateClock();
-    checkAlarms();
-  }, 1000);
-})();
-</script>
+<script src="renderer.js"></script>
 </body>
 </html>
